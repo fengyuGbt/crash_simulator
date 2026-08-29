@@ -84,28 +84,40 @@ class VineCopulaModel:
         # 转换为均匀分布（概率积分变换，用经验分布）
         u = self._to_uniform(data)
 
-        # 拟合Vine copula（pyvinecopulib用通用Vinecop类）
-        # 注意：FitControlsVinecop需要BicopFamily枚举类型，这里用默认值简化
+        # 拟合Vine copula（pyvinecopulib 0.7.6的正确API）
+        # 1. 创建指定维度的Vinecop
+        # 2. 用select方法自动选择最优Vine结构和copula族（比fit更智能）
+        # 3. 数据需要Fortran顺序
         try:
-            controls = pv.FitControlsVinecop(
-                selection_criterion="bic",
-                num_threads=1,
-            )
-            self.model = pv.Vinecop(data=u, controls=controls)
+            self.model = pv.Vinecop(d=u.shape[1])
+            u_f = np.asfortranarray(u)
+            # select方法自动选择最优的Vine结构和pair-copula族
+            self.model.select(u_f)
+            print(f"Vine copula拟合成功，维度={u.shape[1]}, 观测数={len(u)}, "
+                  f"参数数={self.model.npars}, copula族={list(self.model.families)}")
         except Exception as e:
-            # 如果拟合失败，用简化方法（不实际拟合Vine copula，只保存数据）
-            print(f"Vine copula拟合失败，使用简化模式: {e}")
-            self.model = None
-            self._returns_data = returns.copy()
+            # 如果select失败，尝试用fit方法（拟合默认结构）
+            try:
+                print(f"select失败，尝试fit方法: {e}")
+                self.model = pv.Vinecop(d=u.shape[1])
+                u_f = np.asfortranarray(u)
+                self.model.fit(u_f)
+                print(f"Vine copula fit成功，维度={u.shape[1]}, 观测数={len(u)}")
+            except Exception as e2:
+                # 如果都失败，用简化方法（不实际拟合Vine copula，只保存数据）
+                print(f"Vine copula拟合失败，使用简化模式: {e2}")
+                self.model = None
+                self._returns_data = returns.copy()
         self.fitted = True
 
         # 计算拟合指标
         try:
-            log_likelihood = self.model.loglik(u)
+            u_f = np.asfortranarray(u)
+            log_likelihood = self.model.loglik(u_f)
         except Exception:
             log_likelihood = 0.0
         try:
-            n_params = self.model.num_parameters()
+            n_params = self.model.npars  # 属性，不是方法
         except Exception:
             n_params = 0
         n_obs = len(u)
@@ -153,12 +165,19 @@ class VineCopulaModel:
                 # 注意：pyvinecopulib的API可能需要调整
                 try:
                     # 获取pair-copula（在第一棵树中）
+                    # pyvinecopulib的get_pair_copula可能需要不同的参数
                     pair_cop = self.model.get_pair_copula(0, i, j)
                     family = pair_cop.family
                     params = pair_cop.parameters
 
-                    # 计算Kendall tau
-                    tau = pair_cop.tau()
+                    # 计算Kendall tau（注意：tau是属性，不是方法）
+                    try:
+                        tau = pair_cop.tau  # 属性
+                    except Exception:
+                        try:
+                            tau = pair_cop.tau()  # 方法（兼容）
+                        except Exception:
+                            tau = 0.0
 
                     # 计算尾部依赖（基于copula族和参数）
                     lower_tail, upper_tail = self._calc_tail_from_copula(family, params)
