@@ -28,6 +28,7 @@ from src.loss import LossEngine
 from src.advice import PositionAdvisor
 from src.system_dynamics import SystemDynamicsEngine, FeedbackParams
 from src.vine_copula import VineCopulaModel, generate_sample_returns
+from src.jump_diffusion import JumpDiffusionModel, JumpDiffusionParams, generate_crash_jump_params
 
 # 页面配置
 st.set_page_config(
@@ -61,8 +62,8 @@ with st.sidebar:
     st.subheader("危险模型（Hazard）")
     hazard_model = st.radio(
         "选择危险模型",
-        ["历史股灾重演", "系统动力学反馈"],
-        help="历史股灾重演：用真实历史股灾数据；系统动力学：模拟杠杆爆仓→强制卖出→更跌的反馈回路"
+        ["历史股灾重演", "系统动力学反馈", "SDE跳跃扩散"],
+        help="历史股灾重演：用真实历史股灾数据；系统动力学：模拟杠杆爆仓→强制卖出→更跌的反馈回路；SDE跳跃扩散：连续扩散+泊松跳跃，模拟黑天鹅事件"
     )
 
     if hazard_model == "历史股灾重演":
@@ -74,7 +75,7 @@ with st.sidebar:
         )
         name_to_id = {c["event_name"]: c["event_id"] for c in available_crashes}
         selected_ids = [name_to_id[name] for name in selected_names] if selected_names else None
-    else:
+    elif hazard_model == "系统动力学反馈":
         # 系统动力学参数
         st.markdown("**系统动力学参数**")
         initial_shock = st.slider("初始冲击", min_value=-0.30, max_value=-0.05, value=-0.10, step=0.01,
@@ -97,6 +98,59 @@ with st.sidebar:
                                                 step=0.01, format="%.0f%%")
             intervention_strength = st.slider("干预强度", min_value=0.1, max_value=1.0, value=0.5, step=0.1,
                                                 help="政策托底的强度")
+
+    else:  # SDE跳跃扩散
+        st.markdown("**SDE跳跃扩散参数**")
+        jd_severity = st.selectbox(
+            "股灾严重程度",
+            ["mild（轻度）", "moderate（中度）", "severe（重度）", "extreme（极端）", "自定义"],
+            index=1,
+            help="mild: 正常调整；moderate: 类似2022熊市；severe: 类似2008金融危机；extreme: 类似1929大萧条"
+        )
+
+        if jd_severity == "自定义":
+            st.markdown("**扩散部分**")
+            jd_mu = st.slider("年化漂移率 μ", min_value=-0.20, max_value=0.20, value=0.0, step=0.01,
+                               format="%.0f%%", help="长期趋势收益率")
+            jd_sigma = st.slider("年化波动率 σ", min_value=0.10, max_value=0.80, value=0.35, step=0.05,
+                                  format="%.0f%%", help="正常波动幅度")
+
+            st.markdown("**跳跃部分**")
+            jd_lambda = st.slider("跳跃强度 λ（次/年）", min_value=0.0, max_value=20.0, value=4.0, step=1.0,
+                                   help="每年发生跳跃的期望次数")
+            jd_jump_mu = st.slider("跳跃幅度均值", min_value=-0.30, max_value=0.10, value=-0.08, step=0.01,
+                                    format="%.0f%%", help="跳跃的平均幅度（负数表示向下跳）")
+            jd_jump_sigma = st.slider("跳跃幅度标准差", min_value=0.02, max_value=0.40, value=0.12, step=0.02,
+                                       format="%.0f%%", help="跳跃幅度的波动程度")
+
+            jd_n_days = st.slider("模拟天数", min_value=60, max_value=365, value=180, step=30)
+        else:
+            # 使用预设参数，只显示摘要
+            severity_map = {
+                "mild（轻度）": "mild",
+                "moderate（中度）": "moderate",
+                "severe（重度）": "severe",
+                "extreme（极端）": "extreme",
+            }
+            jd_severity_key = severity_map[jd_severity]
+            from src.jump_diffusion import generate_crash_jump_params
+            _jd_params = generate_crash_jump_params(jd_severity_key)
+            st.info(f"""
+            **当前参数（{jd_severity}）**：
+            - 漂移率 μ: {_jd_params.mu*100:.0f}%
+            - 波动率 σ: {_jd_params.sigma*100:.0f}%
+            - 跳跃强度 λ: {_jd_params.jump_lambda:.0f}次/年
+            - 跳跃幅度均值: {_jd_params.jump_mu*100:.0f}%
+            - 跳跃幅度标准差: {_jd_params.jump_sigma*100:.0f}%
+            - 模拟天数: {_jd_params.n_days}天
+            """)
+
+        st.markdown("**股灾筛选**")
+        jd_crash_threshold = st.slider("股灾阈值（最大回撤）", min_value=-0.40, max_value=-0.10, value=-0.20,
+                                        step=0.05, format="%.0f%%",
+                                        help="最大回撤超过此阈值的情景才被视为股灾")
+        jd_n_scenarios = st.slider("股灾情景数量", min_value=10, max_value=200, value=50, step=10,
+                                    help="从模拟中筛选出的股灾情景数量")
 
     # 脆弱性模型选择
     st.subheader("脆弱性模型（Vulnerability）")
@@ -233,7 +287,7 @@ with tab2:
         st.info(f"**事件描述**：{preview_event.description}")
         st.info(f"**受影响行业**：{', '.join(preview_event.affected_sectors)}")
 
-    else:
+    elif hazard_model == "系统动力学反馈":
         st.subheader("系统动力学股灾模拟")
         st.info("系统动力学模拟股灾中的内生反馈回路：杠杆爆仓→强制卖出→更跌，情绪恐慌→抛售→更跌，流动性枯竭→价差扩大→更跌")
 
@@ -319,6 +373,142 @@ with tab2:
             st.info(f"**干预效果**：无干预最大跌幅{max_drop_no*100:.1f}%，有干预最大跌幅{max_drop_with*100:.1f}%，"
                     f"减少跌幅{(max_drop_no-max_drop_with)*100:.1f}个百分点")
 
+    else:  # SDE跳跃扩散
+        st.subheader("SDE跳跃扩散股灾模拟")
+        st.info("""
+        **跳跃扩散模型**：dS/S = μdt + σdW + JdN
+        - 连续扩散部分（μdt + σdW）：模拟正常市场波动
+        - 跳跃部分（JdN）：泊松过程驱动，模拟黑天鹅事件、财报突变、政策冲击
+        - 优势：比纯几何布朗运动更符合实际市场的"尖峰厚尾"特征
+        """)
+
+        # 构建参数
+        if jd_severity == "自定义":
+            jd_params = JumpDiffusionParams(
+                mu=jd_mu, sigma=jd_sigma,
+                jump_lambda=jd_lambda, jump_mu=jd_jump_mu, jump_sigma=jd_jump_sigma,
+                n_days=jd_n_days,
+            )
+        else:
+            severity_map = {
+                "mild（轻度）": "mild",
+                "moderate（中度）": "moderate",
+                "severe（重度）": "severe",
+                "extreme（极端）": "extreme",
+            }
+            jd_params = generate_crash_jump_params(severity_map[jd_severity])
+
+        # 创建模型并运行蒙特卡洛模拟
+        jd_model = JumpDiffusionModel(jd_params)
+
+        with st.spinner("正在运行跳跃扩散蒙特卡洛模拟..."):
+            jd_results = jd_model.simulate(n_simulations=2000, base_seed=42)
+
+        # 统计结果
+        jd_max_dds = [r.max_drawdown for r in jd_results]
+        jd_total_returns = [r.total_return for r in jd_results]
+        jd_n_jumps = [r.n_jumps for r in jd_results]
+
+        # 显示摘要
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("平均最大回撤", f"{np.mean(jd_max_dds)*100:.1f}%")
+        with col2:
+            st.metric("5%分位回撤", f"{np.percentile(jd_max_dds, 5)*100:.1f}%")
+        with col3:
+            st.metric("最坏回撤", f"{np.min(jd_max_dds)*100:.1f}%")
+        with col4:
+            crash_prob = sum(1 for d in jd_max_dds if d < jd_crash_threshold) / len(jd_max_dds)
+            st.metric("股灾概率", f"{crash_prob*100:.1f}%")
+
+        # 价格路径图（显示几条代表性路径）
+        st.subheader("价格路径（10条代表性模拟）")
+        fig = go.Figure()
+        for i in range(min(10, len(jd_results))):
+            r = jd_results[i]
+            fig.add_trace(go.Scatter(
+                x=list(range(len(r.prices))),
+                y=r.prices,
+                mode="lines",
+                name=f"路径{i+1}",
+                opacity=0.7,
+            ))
+        fig.add_hline(y=100, line_dash="dash", line_color="gray", annotation_text="初始价格=100")
+        fig.update_layout(
+            title="跳跃扩散价格路径（红色标记为发生跳跃的路径）",
+            xaxis_title="天数", yaxis_title="价格指数",
+            showlegend=True,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # 最大回撤分布
+        st.subheader("最大回撤分布")
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(
+            x=[d*100 for d in jd_max_dds],
+            nbinsx=50,
+            name="最大回撤分布",
+            marker_color="rgba(255, 100, 100, 0.7)",
+        ))
+        fig.add_vline(x=jd_crash_threshold*100, line_dash="dash", line_color="red",
+                      annotation_text=f"股灾阈值: {jd_crash_threshold*100:.0f}%")
+        fig.update_layout(
+            title="最大回撤分布（2000次蒙特卡洛模拟）",
+            xaxis_title="最大回撤 (%)", yaxis_title="模拟次数",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # 跳跃次数分布
+        st.subheader("跳跃次数分布")
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(
+            x=jd_n_jumps,
+            nbinsx=20,
+            name="跳跃次数分布",
+            marker_color="rgba(100, 149, 237, 0.7)",
+        ))
+        fig.update_layout(
+            title=f"跳跃次数分布（期望λ={jd_params.jump_lambda:.1f}次/年）",
+            xaxis_title="跳跃次数", yaxis_title="模拟次数",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # 筛选股灾情景
+        st.subheader(f"股灾情景列表（筛选{jd_n_scenarios}个，回撤>{jd_crash_threshold*100:.0f}%）")
+        with st.spinner("正在筛选股灾情景..."):
+            jd_scenarios = jd_model.get_crash_scenarios(
+                n_scenarios=jd_n_scenarios,
+                crash_threshold=jd_crash_threshold,
+                params=jd_params,
+                base_seed=42,
+            )
+
+        scenario_df = pd.DataFrame([{
+            "情景ID": s["scenario_id"],
+            "最大回撤": f"{s['max_drawdown']*100:.1f}%",
+            "见底天数": f"第{s['crash_day']}天",
+            "跳跃次数": s["n_jumps"],
+            "总收益率": f"{s['total_return']*100:.1f}%",
+        } for s in jd_scenarios])
+        st.dataframe(scenario_df, use_container_width=True, hide_index=True)
+
+        # 股灾情景价格路径对比
+        st.subheader("股灾情景价格路径对比")
+        fig = go.Figure()
+        for s in jd_scenarios[:5]:
+            fig.add_trace(go.Scatter(
+                x=list(range(len(s["price_path"]))),
+                y=s["price_path"],
+                mode="lines",
+                name=f"{s['scenario_id']} (回撤{s['max_drawdown']*100:.0f}%)",
+            ))
+        fig.add_hline(y=100, line_dash="dash", line_color="gray")
+        fig.update_layout(
+            title="前5个股灾情景的价格路径",
+            xaxis_title="天数", yaxis_title="价格指数",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
 # ========== Tab 3: 系统动力学（独立展示） ==========
 with tab3:
     st.header("③ 系统动力学深度分析")
@@ -373,7 +563,7 @@ with tab4:
                         add_noise=add_noise,
                         random_seed=42,
                     )
-                else:
+                elif hazard_model == "系统动力学反馈":
                     # 系统动力学：生成多个股灾情景
                     scenarios = sd_engine.generate_crash_scenarios(
                         n_scenarios=min(n_simulations // 10, 5000),
@@ -396,6 +586,87 @@ with tab4:
                             affected_sectors=["科技", "消费", "金融", "医疗", "能源", "工业", "公用事业", "地产"],
                             probability=0.02,
                             description="系统动力学模拟的股灾情景",
+                            seed=i,
+                        )
+
+                        # 根据脆弱性模型计算损失
+                        if vulnerability_model == "Vine copula尾部依赖":
+                            vine_vuln = VineCopulaVulnerability(use_sample_data=True)
+                            vuln_results = vine_vuln.calculate_portfolio(portfolio, event, n_simulations=50)
+                        else:
+                            vuln_results = vulnerability_engine.calculate_portfolio(portfolio, event, add_noise=add_noise)
+
+                        total_loss = 0.0
+                        position_losses = {}
+                        for vr, position in zip(vuln_results, portfolio.positions):
+                            loss = position.market_value * abs(vr.final_drop)
+                            position_losses[position.ticker] = loss
+                            total_loss += loss
+
+                        total_loss_pct = total_loss / portfolio.total_value if portfolio.total_value > 0 else 0
+                        from src.loss import LossResult
+                        result = LossResult(
+                            event_id=event.event_id,
+                            event_name=event.event_name,
+                            market_drop=event.market_drop,
+                            portfolio_drop=total_loss_pct,
+                            total_loss=total_loss,
+                            total_loss_pct=total_loss_pct,
+                            position_losses=position_losses,
+                        )
+                        results.append(result)
+                        loss_data.append({
+                            "event_id": event.event_id,
+                            "event_name": event.event_name,
+                            "market_drop": event.market_drop,
+                            "portfolio_drop": total_loss_pct,
+                            "total_loss": total_loss,
+                            "total_loss_pct": total_loss_pct,
+                        })
+
+                    loss_df = pd.DataFrame(loss_data)
+
+                else:  # SDE跳跃扩散
+                    # 构建参数
+                    if jd_severity == "自定义":
+                        jd_params_test = JumpDiffusionParams(
+                            mu=jd_mu, sigma=jd_sigma,
+                            jump_lambda=jd_lambda, jump_mu=jd_jump_mu, jump_sigma=jd_jump_sigma,
+                            n_days=jd_n_days,
+                        )
+                    else:
+                        severity_map = {
+                            "mild（轻度）": "mild",
+                            "moderate（中度）": "moderate",
+                            "severe（重度）": "severe",
+                            "extreme（极端）": "extreme",
+                        }
+                        jd_params_test = generate_crash_jump_params(severity_map[jd_severity])
+
+                    # 创建模型并筛选股灾情景
+                    jd_model_test = JumpDiffusionModel(jd_params_test)
+                    jd_scenarios = jd_model_test.get_crash_scenarios(
+                        n_scenarios=min(jd_n_scenarios, n_simulations // 10),
+                        crash_threshold=jd_crash_threshold,
+                        params=jd_params_test,
+                        base_seed=42,
+                    )
+
+                    # 转换为CrashEvent并计算损失
+                    results = []
+                    loss_data = []
+                    for i, scenario in enumerate(jd_scenarios):
+                        event = CrashEvent(
+                            event_id=scenario["scenario_id"],
+                            event_name="跳跃扩散股灾",
+                            event_type="系统性股灾",
+                            start_date="2025-01-01",
+                            end_date="2025-12-31",
+                            duration_days=scenario["crash_day"],
+                            market_drop=scenario["max_drawdown"],
+                            affected_sectors=["科技", "消费", "金融", "医疗", "能源", "工业", "公用事业", "地产"],
+                            probability=0.02,
+                            description=f"SDE跳跃扩散模型生成的股灾情景，跳跃{scenario['n_jumps']}次",
                             seed=i,
                         )
 
