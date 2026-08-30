@@ -804,6 +804,14 @@ with tab4:
                         }
                         jd_params_test = generate_crash_jump_params(severity_map[jd_severity])
 
+                    # 情绪校准调整
+                    if enable_sentiment_calibration:
+                        calibrated_params, calib_result = sentiment_calibrator.calibrate_jump_diffusion_params(
+                            jd_params_test, sentiment_index
+                        )
+                        jd_params_test = calibrated_params
+                        st.session_state.sentiment_calibration_result = calib_result
+
                     # 创建模型并筛选股灾情景
                     jd_model_test = JumpDiffusionModel(jd_params_test)
                     jd_scenarios = jd_model_test.get_crash_scenarios(
