@@ -29,18 +29,20 @@ from src.advice import PositionAdvisor
 from src.system_dynamics import SystemDynamicsEngine, FeedbackParams
 from src.vine_copula import VineCopulaModel, generate_sample_returns
 from src.jump_diffusion import JumpDiffusionModel, JumpDiffusionParams, generate_crash_jump_params
+from src.sentiment_calibration import SentimentCalibrator, SentimentParams, analyze_sentiment_from_texts
+from src.xbrl_vulnerability import XBRLVulnerabilityModel, FinancialMetrics, generate_sample_financial_metrics
 
 # 页面配置
 st.set_page_config(
-    page_title="股灾压力测试工具 v2",
+    page_title="股灾压力测试工具 v6",
     page_icon="📉",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # 标题
-st.title("📉 股灾压力测试工具 v2")
-st.caption("基于巨灾建模框架 | 系统动力学反馈回路 | Vine copula尾部依赖 | 政策干预模拟")
+st.title("📉 股灾压力测试工具 v6")
+st.caption("基于巨灾建模框架 | 系统动力学 | Vine copula | SDE跳跃扩散 | 情绪校准 | 财务脆弱性")
 
 # 初始化引擎（缓存）
 @st.cache_resource
@@ -50,9 +52,11 @@ def get_engines():
     loss_engine = LossEngine(hazard_engine, vulnerability_engine)
     advisor = PositionAdvisor()
     sd_engine = SystemDynamicsEngine()
-    return hazard_engine, vulnerability_engine, loss_engine, advisor, sd_engine
+    sentiment_calibrator = SentimentCalibrator()
+    xbrl_model = XBRLVulnerabilityModel()
+    return hazard_engine, vulnerability_engine, loss_engine, advisor, sd_engine, sentiment_calibrator, xbrl_model
 
-hazard_engine, vulnerability_engine, loss_engine, advisor, sd_engine = get_engines()
+hazard_engine, vulnerability_engine, loss_engine, advisor, sd_engine, sentiment_calibrator, xbrl_model = get_engines()
 
 # 侧边栏：参数配置
 with st.sidebar:
@@ -160,6 +164,46 @@ with st.sidebar:
         help="Beta模型：简单线性；Vine copula：捕捉危机时股票间相关性飙升"
     )
 
+    # 财务脆弱性选项
+    st.markdown("**财务脆弱性（XBRL）**")
+    enable_financial_vulnerability = st.checkbox(
+        "启用财务脆弱性调整",
+        value=True,
+        help="用公司财务指标（负债率、现金流、盈利能力等）调整股灾中的个股跌幅。财务稳健的公司跌得更少，财务脆弱的公司跌得更多。"
+    )
+    if enable_financial_vulnerability:
+        financial_data_source = st.radio(
+            "财务数据来源",
+            ["使用示例数据（7只大盘股）", "手动输入"],
+            horizontal=True,
+            help="示例数据包含AAPL/MSFT/GOOGL/AMZN/TSLA/JPM/JNJ的财务指标"
+        )
+
+    # 情绪校准选项
+    st.markdown("**情绪校准（NLP）**")
+    enable_sentiment_calibration = st.checkbox(
+        "启用市场情绪校准",
+        value=False,
+        help="用市场情绪指数校准股灾概率和跳跃强度。极度贪婪时股灾概率上升，极度恐惧时股灾概率下降。"
+    )
+    if enable_sentiment_calibration:
+        sentiment_index = st.slider(
+            "市场情绪指数（0-100）",
+            min_value=0, max_value=100, value=50, step=5,
+            help="0=极度恐惧，50=中性，100=极度贪婪。参考：别人贪婪我恐惧，别人恐惧我贪婪。"
+        )
+        # 显示当前情绪状态
+        if sentiment_index >= 80:
+            st.warning("⚠️ 极度贪婪：泡沫破裂风险显著上升")
+        elif sentiment_index >= 65:
+            st.info("📈 贪婪：需警惕回调风险")
+        elif sentiment_index >= 35:
+            st.info("➖ 中性：股灾概率维持基础水平")
+        elif sentiment_index >= 20:
+            st.info("📉 恐惧：恐慌可能已部分释放")
+        else:
+            st.success("✅ 极度恐惧：超卖后反弹概率上升")
+
     # 蒙特卡洛参数
     st.subheader("蒙特卡洛模拟")
     n_simulations = st.slider("模拟次数", min_value=1000, max_value=50000, value=10000, step=1000)
@@ -249,6 +293,107 @@ with tab1:
             sector_exp = portfolio.sector_exposure
             fig = px.pie(values=sector_exp.values, names=sector_exp.index, title="行业市值占比")
             st.plotly_chart(fig, use_container_width=True)
+
+            # 财务脆弱性分析
+            if enable_financial_vulnerability:
+                st.subheader("📊 财务脆弱性分析（XBRL）")
+
+                # 获取示例财务数据
+                sample_metrics = generate_sample_financial_metrics()
+                metrics_map = {m.ticker: m for m in sample_metrics}
+
+                # 分析每只股票
+                financial_results = []
+                for position in portfolio.positions:
+                    if position.ticker in metrics_map:
+                        result = xbrl_model.analyze(metrics_map[position.ticker])
+                        financial_results.append(result)
+                    else:
+                        # 没有财务数据的股票，用中性值
+                        financial_results.append(None)
+
+                # 显示财务脆弱性概览
+                col1, col2, col3, col4 = st.columns(4)
+                valid_results = [r for r in financial_results if r is not None]
+                if valid_results:
+                    avg_score = np.mean([r.vulnerability_score for r in valid_results])
+                    avg_multiplier = np.mean([r.crash_drop_multiplier for r in valid_results])
+                    high_risk_count = sum(1 for r in valid_results if r.vulnerability_score >= 50)
+                    low_risk_count = sum(1 for r in valid_results if r.vulnerability_score < 20)
+
+                    with col1:
+                        st.metric("平均脆弱性评分", f"{avg_score:.1f}/100")
+                    with col2:
+                        st.metric("平均跌幅乘数", f"{avg_multiplier:.2f}x")
+                    with col3:
+                        st.metric("高风险股票数", f"{high_risk_count}")
+                    with col4:
+                        st.metric("低风险股票数", f"{low_risk_count}")
+
+                # 显示详细财务脆弱性表
+                st.markdown("**各股票财务脆弱性详情**")
+                fin_data = []
+                for position, result in zip(portfolio.positions, financial_results):
+                    if result:
+                        fin_data.append({
+                            "代码": position.ticker,
+                            "公司": position.name,
+                            "脆弱性评分": f"{result.vulnerability_score:.1f}",
+                            "风险等级": result.risk_level,
+                            "跌幅乘数": f"{result.crash_drop_multiplier:.2f}x",
+                            "偿债能力": f"{result.solvency_score:.1f}",
+                            "现金流": f"{result.cashflow_score:.1f}",
+                            "盈利能力": f"{result.profitability_score:.1f}",
+                            "成长性": f"{result.growth_score:.1f}",
+                            "运营效率": f"{result.efficiency_score:.1f}",
+                        })
+                    else:
+                        fin_data.append({
+                            "代码": position.ticker,
+                            "公司": position.name,
+                            "脆弱性评分": "N/A",
+                            "风险等级": "无数据",
+                            "跌幅乘数": "1.00x",
+                            "偿债能力": "N/A",
+                            "现金流": "N/A",
+                            "盈利能力": "N/A",
+                            "成长性": "N/A",
+                            "运营效率": "N/A",
+                        })
+
+                st.dataframe(pd.DataFrame(fin_data), use_container_width=True, hide_index=True)
+
+                # 财务脆弱性雷达图（前5只股票）
+                if valid_results:
+                    st.markdown("**财务脆弱性维度对比（前5只股票）**")
+                    categories = ["偿债能力", "现金流", "盈利能力", "成长性", "运营效率"]
+                    fig = go.Figure()
+                    for result in valid_results[:5]:
+                        values = [
+                            result.solvency_score,
+                            result.cashflow_score,
+                            result.profitability_score,
+                            result.growth_score,
+                            result.efficiency_score,
+                        ]
+                        fig.add_trace(go.Scatterpolar(
+                            r=values + [values[0]],
+                            theta=categories + [categories[0]],
+                            fill='toself',
+                            name=result.ticker,
+                        ))
+                    fig.update_layout(
+                        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                        showlegend=True,
+                        title="财务脆弱性维度对比（分数越高越脆弱）",
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # 显示第一只股票的详细分析
+                if valid_results:
+                    st.markdown("**详细分析示例**")
+                    first_result = valid_results[0]
+                    st.info(first_result.explanation)
 
 # ========== Tab 2: 股灾情景 ==========
 with tab2:
@@ -596,10 +741,26 @@ with tab4:
                         else:
                             vuln_results = vulnerability_engine.calculate_portfolio(portfolio, event, add_noise=add_noise)
 
+                        # 财务脆弱性调整
+                        if enable_financial_vulnerability:
+                            sample_metrics_fin = generate_sample_financial_metrics()
+                            metrics_map_fin = {m.ticker: m for m in sample_metrics_fin}
+                            adjusted_drops = []
+                            for vr, position in zip(vuln_results, portfolio.positions):
+                                if position.ticker in metrics_map_fin:
+                                    fin_result = xbrl_model.analyze(metrics_map_fin[position.ticker])
+                                    adj_drop = vr.final_drop * fin_result.crash_drop_multiplier
+                                    adj_drop = float(np.clip(adj_drop, -0.95, 0.0))
+                                else:
+                                    adj_drop = vr.final_drop
+                                adjusted_drops.append(adj_drop)
+                        else:
+                            adjusted_drops = [vr.final_drop for vr in vuln_results]
+
                         total_loss = 0.0
                         position_losses = {}
-                        for vr, position in zip(vuln_results, portfolio.positions):
-                            loss = position.market_value * abs(vr.final_drop)
+                        for adj_drop, position in zip(adjusted_drops, portfolio.positions):
+                            loss = position.market_value * abs(adj_drop)
                             position_losses[position.ticker] = loss
                             total_loss += loss
 
@@ -677,10 +838,26 @@ with tab4:
                         else:
                             vuln_results = vulnerability_engine.calculate_portfolio(portfolio, event, add_noise=add_noise)
 
+                        # 财务脆弱性调整
+                        if enable_financial_vulnerability:
+                            sample_metrics_fin2 = generate_sample_financial_metrics()
+                            metrics_map_fin2 = {m.ticker: m for m in sample_metrics_fin2}
+                            adjusted_drops2 = []
+                            for vr, position in zip(vuln_results, portfolio.positions):
+                                if position.ticker in metrics_map_fin2:
+                                    fin_result2 = xbrl_model.analyze(metrics_map_fin2[position.ticker])
+                                    adj_drop2 = vr.final_drop * fin_result2.crash_drop_multiplier
+                                    adj_drop2 = float(np.clip(adj_drop2, -0.95, 0.0))
+                                else:
+                                    adj_drop2 = vr.final_drop
+                                adjusted_drops2.append(adj_drop2)
+                        else:
+                            adjusted_drops2 = [vr.final_drop for vr in vuln_results]
+
                         total_loss = 0.0
                         position_losses = {}
-                        for vr, position in zip(vuln_results, portfolio.positions):
-                            loss = position.market_value * abs(vr.final_drop)
+                        for adj_drop2, position in zip(adjusted_drops2, portfolio.positions):
+                            loss = position.market_value * abs(adj_drop2)
                             position_losses[position.ticker] = loss
                             total_loss += loss
 
