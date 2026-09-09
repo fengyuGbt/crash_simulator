@@ -1,5 +1,13 @@
 # Crash Simulator
 
+## Open to freelance work
+
+I build **AI data automation, Python pipelines, and quantitative risk tools** for hire.
+Portfolio: this repo · [ai-agent-demo](https://github.com/fengyuGbt/ai-agent-demo)
+Contact: **gopipibank@gmail.com**
+
+---
+
 **Market stress-testing tool for equity portfolios, built on insurance catastrophe-modeling methodology.**
 
 Simulate historical crash scenarios against your portfolio and get quantified answers: *how much could I lose, how bad is the tail, which sectors hurt me most, and how much should I be holding right now?*
