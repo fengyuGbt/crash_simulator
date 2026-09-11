@@ -1,0 +1,7 @@
+Add dealer_gamma module: market-maker hedging spiral (V9 P1)
+
+Mechanism model of the short-gamma feedback loop: when dealers are net
+short gamma, a selloff forces mechanical delta-hedge selling that deepens
+the fall. Net gamma approximated from VIX/SKEW state (free data), params
+configurable. Self-test asserts short-gamma amplifies, long-gamma damps,
+intervention reduces amplification, determinism.

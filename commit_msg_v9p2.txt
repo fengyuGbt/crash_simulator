@@ -1,0 +1,16 @@
+V9-P2: endogenous hazard -- wire market state into hazard intensity
+
+hazard.py now calibrates event intensity to market state:
+  intensity = historical noise x regime multiplier x short-gamma factor
+- regime multiplier from market_state (calm 1.0 / stressed 1.5 / panic 2.5)
+- short-gamma amplification from dealer_gamma estimate
+  (1 + max(0,-gamma)*0.30, documented cap 1.5)
+- default off: fully backward compatible
+  (verified: test_import.py + test_basic.py all green)
+- self-test validates 7 invariants (neutral/panic/long-gamma/back-compat/event-set shift)
+- live Cboe state (2026-09-07): calm regime, net gamma -0.666
+  -> combined state intensity multiplier 1.1998
+  even in calm, the short-gamma layer lifts replayed crash intensity ~20%
+
+Closes the loop on Dean Lee's three feedback points
+(endogeneity / dealer short gamma / implied vs realized calibration).

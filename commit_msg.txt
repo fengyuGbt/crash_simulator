@@ -1,0 +1,7 @@
+Add market_state module: VIX/SKEW regime indicators (V9 P0)
+
+Free Cboe data pipeline for regime-aware hazard inputs:
+- VIX/SKEW history download with local cache
+- 5y percentile ranks, 5d/21d changes, rule-based regime
+- hazard_multiplier hook for endogenous hazard (V9 P2)
+- self-test validates download + columns + snapshot
