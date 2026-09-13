@@ -1,0 +1,17 @@
+V9-P3: discrete margin & threshold bunching
+
+Mechanism response to the Part-4 reader comment: forced selling is not
+a continuous ODE. Brokers mark at discrete intervals, and the next
+threshold sits on a round number that many accounts share - so a
+10% print can skip 12 and land at 18 before cash can be added.
+
+- Discrete marking every N steps (vs system_dynamics' smooth flow)
+- Integer-level threshold buckets (-10/-15/-20/-25), batch liquidation
+- Same-mark cascades: a -15% print skips three levels in one mark
+  round and lands near -24% before anyone can react
+- Liquidation-window metric (steps + cumulative flow) - the part a
+  VaR that treats the Fed as a residual never prices
+- Optional backstop (2020-style: cut the flow, not the news):
+  absorbs forced-selling flow, shallows the drop, speeds recovery
+- Self-test: 6 invariants green (small-shock safety, steps-not-slope,
+  loss concentration, window measurable, determinism, intervention)
