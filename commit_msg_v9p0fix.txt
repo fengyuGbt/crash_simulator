@@ -1,0 +1,18 @@
+V9-P0 fix: align as_of to the latest COMMON trading date
+
+Found via reader feedback: Cboe's VIX_History.csv carries a holiday-stub
+row (Labor Day 2026-09-07 appears in VIX but not in SKEW). Taking the
+last row of each series blindly mislabeled as_of and fed a non-trading
+value into the state snapshot.
+
+Fix (_align_latest, no external holiday calendar):
+- drop weekends (never trading days)
+- require BOTH series to have an observation on the same date
+- take the latest such common date as as_of
+
+compute_state now reads VIX/SKEW levels, percentiles and changes from
+the aligned date. Correct snapshot for the article: 2026-09-04, VIX
+14.53 (18th pctile), SKEW 151.58 (83rd), regime calm.
+
+Self-test gains a regression guard: as_of must be a weekday and must
+match the common-trading-date alignment.

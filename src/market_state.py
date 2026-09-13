@@ -70,6 +70,38 @@ def percentile_rank(series, value):
     return float((valid < value).mean())
 
 
+def _align_latest(vix, skew):
+    """Return the latest COMMON trading date with aligned VIX/SKEW rows.
+
+    Fixes a Cboe data quirk: VIX_History.csv occasionally carries a
+    holiday-stub row (e.g. Labor Day 2026-09-07 appears in VIX but not in
+    SKEW). Taking the last row of each series blindly mislabels as_of and
+    feeds a non-trading value into the state.
+
+    Robust approach, no external holiday calendar:
+      1. drop weekends (never trading days)
+      2. require BOTH series to have an observation on the same date
+      3. take the latest such common date
+
+    Returns (as_of_date, vix_row, skew_row) or None if no common weekday.
+    """
+    vix = vix.dropna(subset=["DATE"]).copy()
+    skew = skew.dropna(subset=["DATE"]).copy()
+    vix = vix[vix["DATE"].dt.dayofweek < 5]
+    skew = skew[skew["DATE"].dt.dayofweek < 5]
+    if len(vix) == 0 or len(skew) == 0:
+        return None
+    vix = vix[vix["DATE"].isin(set(skew["DATE"]))]
+    if len(vix) == 0:
+        return None
+    as_of = vix["DATE"].iloc[-1]
+    vix_row = vix[vix["DATE"] == as_of]
+    skew_row = skew[skew["DATE"] == as_of]
+    if len(vix_row) == 0 or len(skew_row) == 0:
+        return None
+    return as_of, vix_row.iloc[0], skew_row.iloc[0]
+
+
 def pct_change(series, n):
     """Return latest n-period % change, NaN-safe."""
     valid = series.dropna()
@@ -108,21 +140,34 @@ def compute_state(vix=None, skew=None, lookback=252 * 5):
     skew = skew if skew is not None else load_skew()
 
     close_col = "CLOSE" if "CLOSE" in vix.columns else vix.columns[-1]
-    vix_close = float(vix[close_col].iloc[-1])
-    skew_close = float(skew[close_col].iloc[-1]) if len(skew) else float("nan")
 
-    recent_vix = vix[close_col].tail(lookback)
-    recent_skew = skew[close_col].tail(lookback)
+    # Align on the latest common trading date (drops Cboe holiday-stub rows).
+    aligned = _align_latest(vix, skew)
+    if aligned is not None:
+        as_of, vix_row, skew_row = aligned
+        vix_close = float(vix_row[close_col])
+        skew_close = float(skew_row[close_col])
+        hist_vix = vix.loc[vix["DATE"] <= as_of, close_col]
+        hist_skew = skew.loc[skew["DATE"] <= as_of, close_col]
+    else:  # backward-compatible fallback
+        as_of = vix["DATE"].iloc[-1]
+        vix_close = float(vix[close_col].iloc[-1])
+        skew_close = float(skew[close_col].iloc[-1]) if len(skew) else float("nan")
+        hist_vix = vix[close_col]
+        hist_skew = skew[close_col]
+
+    recent_vix = hist_vix.tail(lookback)
+    recent_skew = hist_skew.tail(lookback)
 
     vix_pctile = percentile_rank(recent_vix, vix_close)
     skew_pctile = percentile_rank(recent_skew, skew_close)
-    vix_chg_5d = pct_change(vix[close_col], 5)
-    vix_chg_21d = pct_change(vix[close_col], 21)
+    vix_chg_5d = pct_change(hist_vix, 5)
+    vix_chg_21d = pct_change(hist_vix, 21)
 
     regime = classify_regime(vix_pctile, skew_pctile, vix_chg_5d, vix_close)
 
     return {
-        "as_of": str(vix["DATE"].iloc[-1].date()),
+        "as_of": str(as_of.date()),
         "vix_close": round(vix_close, 2),
         "vix_pctile_5y": round(vix_pctile, 3),
         "vix_chg_5d": round(vix_chg_5d, 4),
@@ -147,6 +192,13 @@ def self_test():
     print(f"  SKEW rows: {len(skew)}  ({skew['DATE'].iloc[0].date()} -> {skew['DATE'].iloc[-1].date()})")
     state = compute_state(vix, skew)
     print_state(state)
+    # regression guard: as_of must be a real (common, weekday) trading date
+    as_of = pd.to_datetime(state["as_of"])
+    assert as_of.dayofweek < 5, f"as_of must be a weekday: {state['as_of']}"
+    aligned = _align_latest(vix, skew)
+    assert aligned is not None, "no common trading date found"
+    assert str(aligned[0].date()) == state["as_of"], (
+        f"as_of mismatch: {state['as_of']} != {aligned[0].date()}")
     print("== self-test OK ==")
     return 0
 
