@@ -1,0 +1,23 @@
+V9-P4: mechanism -> Monte Carlo -> outcome distribution
+
+Response to reader feedback on Part 5/6: a -5% shock should produce a
+DISTRIBUTION of outcomes, not a single 3.07x amplification factor.
+
+The mechanism layer is deterministic by design; this module wraps the
+dealer-gamma spiral in a Monte Carlo shell and lets parameter
+uncertainty become outcome uncertainty:
+
+- net_gamma is ESTIMATED from state, not observed -> sampled
+  (clipped normal around -0.666, short-gamma prior)
+- shock size is a SCENARIO, not a fact -> sampled
+  (clipped normal around -5%)
+- 2000 paths -> max drawdown distribution (p50/p10/p1/worst) + EP curve
+- optional 2020-style flow-cut intervention shows the tail effect
+
+Result: the Part-5 single path (-15.4%, 3.07x) is the MEDIAN of the
+distribution, not a forecast. p10 -22.8%, p1 -28.1%, worst -32.1%.
+EP: P(drawdown<=-10%) = 82%, <= -15% = 52%, <= -20% = 21%.
+Intervention shallows p1 -28.1% -> -26.1%.
+
+Self-test: 6 invariants green (determinism, tail ordering, EP
+monotonicity, reference-inside-band, near-median, intervention).
