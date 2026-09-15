@@ -1,0 +1,25 @@
+V9-P5: gamma flip -- why the spiral stops
+
+Part 8's honest boundary: "the kernel is still deterministic; it does
+not yet let gamma evolve path-by-path." This module closes that gap.
+
+Real crashes are self-amplifying but NOT self-sustaining: as implied
+volatility spikes, dealer positions flip from short gamma (forced to
+sell into the fall) to long gamma (buying dips becomes mechanically
+attractive), and the spiral is cut. P5 adds one evolution rule to the
+Part-5 kernel: once cumulative drawdown passes flip_threshold, gamma
+converges toward +0.80 (deep long gamma) at flip_speed 0.60.
+
+Results (defaults): no-flip reproduces the P1 baseline exactly
+(-15.4%, 3.07x). With flip threshold 10%: -13.8% (2.76x), flip at
+step 3, gamma ends +0.80. Threshold sweep: the later the flip, the
+deeper the damage -- 5% -> 2.39x, 10% -> 2.76x, 15% -> 3.07x (too
+late to matter), 20%+ -> never flips (3.07x). Monte Carlo (uncertain
+gamma0/shock/threshold, 2000 paths): flip fires in 80% of paths;
+p50 -14.0%, p10 -19.4%, p1 -23.7%, worst -27.2% -- vs no-flip p1
+-28.6% and worst -33.4%. The flip truncates the tail: spiral cuts,
+then price stabilizes (recovery itself is the intervention story).
+
+Self-test: 7 invariants green (P1 reproduction, flip cuts the spiral,
+gamma sign flip, threshold monotonicity, determinism, MC tail
+shallower with flip, flip_share in (0,1)).
