@@ -1,0 +1,31 @@
+V9-P6: margin cascade -- the race the flip can lose
+
+Part 9 closed with an honest gap: "what we do NOT yet model is the
+cascade INSIDE the flip -- the funds that blow up before the book
+turns positive." This module adds leveraged-account liquidation
+cascades to the P5 kernel (spiral + flip) and answers the question
+that matters: does the gamma flip arrive in time, or does the
+cascade run ahead of it?
+
+New in P6:
+- margin buckets: (10x@-5%, 5x@-10%, 3x@-15%, 2x@-20%), weights sum 1
+- forced liquidation releases over lag_steps=3 (margin-call grace
+  window) -- the cascade keeps feeding the market while the flip
+  converges
+- market impact per unit of forced flow; cascade share of total loss
+
+Results (defaults): bare P1 -15.4% (3.07x); flip-only -13.8%
+(2.76x); flip + cascade -19.3% (3.85x), 3/4 buckets, cascade share
+28%. The flip fires at step 3 -- but the last liquidation happens at
+step 7: the cascade has its own momentum and keeps doing damage after
+the dealer book turns positive.
+
+Flip timing vs cascade: early flip (5%) -> 3 buckets, -15.7%; late
+flip (20%) -> all 4 buckets, -23.5%. The 7.8pp gap is the cost of a
+late self-heal. Monte Carlo (uncertain gamma0/shock/threshold):
+p50 -19.2%, p10 -28.9%, p1 -33.5%, worst -36.6%, avg 2.91 buckets --
+vs no-cascade p1 -23.7%. The cascade deepens the tail by ~10pp.
+
+Self-test: 7 invariants green (P1 reproduction, cascade adds damage,
+early flip saves buckets, flip timing order, impact monotonicity,
+determinism, MC tail deeper with cascade).
