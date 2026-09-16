@@ -14,6 +14,17 @@ Simulate historical crash scenarios against your portfolio and get quantified an
 
 ---
 
+## Articles — Fat Tail Notes
+
+I build this in public: each mechanism ships as a module, a commit, and an article.
+**10 parts so far** — from the four-layer catastrophe framework to the margin cascade
+that outruns the gamma flip. English + Chinese, with the module map and the
+reader-feedback roadmap in the index:
+
+👉 **[Read the series → articles/README.md](articles/README.md)**
+
+---
+
 ## Why this tool exists
 
 Most risk tools assume returns follow a normal distribution. Markets don't. In a crisis, correlations converge to 1 and everything falls together — the exact moment standard VaR models fail.
@@ -71,6 +82,7 @@ crash_simulator/
 │   ├── loss.py             # Monte Carlo, VaR/CVaR, EP curve
 │   ├── advice.py           # Risk-budget position sizing
 │   └── yuima_integration.py    # R yuima SDE parameter estimation
+├── articles/               # Fat Tail Notes article series (EN + zh)
 ├── historical_crashes.csv  # 6 historical crash datasets
 ├── test_v2.py ... test_v5.py  # Versioned test suites
 └── install.sh / start_streamlit.sh / git_commit_*.sh  # Ops & release scripts
