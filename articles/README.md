@@ -2,8 +2,8 @@
 
 Building a market stress-testing tool in public, one mechanism at a time.
 Each part ships with a real module in `src/` (V9 line: `market_state.py` →
-`dealer_gamma.py` → `gamma_flip.py` → `cascade.py` → `mc_mechanism.py`), a
-GitHub commit, and this article.
+`dealer_gamma.py` → `gamma_flip.py` → `cascade.py` → `mc_mechanism.py`;
+V10-P1 adds `policy_backstop.py`), a GitHub commit, and this article.
 
 English versions live here (also on [dev.to](https://dev.to/fengyugbt));
 Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
@@ -27,6 +27,7 @@ Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
 | 09 | [The Gamma Flip](part-09-the-gamma-flip.md) | Why the spiral stops: short → long gamma | `gamma_flip.py` (V9-P5) |
 | 10 | [The Margin Cascade](part-10-the-margin-cascade.md) | The cascade runs ahead of the flip | `cascade.py` (V9-P6) |
 | 11 | [The Twenty-Day Window](part-11-the-twenty-day-window.md) | Price tools vs flow tools; pricing the policy residual | V10-P1 policy layer (planned) |
+| 12 | [The Backstop Clock](part-12-the-backstop-clock.md) | Policy clock vs cascade: price tools don't bind, flow tools truncate | `policy_backstop.py` (V10-P1) |
 
 ## Reader feedback drove the roadmap
 
@@ -38,7 +39,8 @@ Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
   (`11814bb`), corrected in Part 8.
 - Part 10 → Dean Lee: "A VaR that treats the Fed as a residual still prices
   the news shock and misses how long that liquidation window stays open." →
-  Part 11 (`backstop = f(trigger, lag, coverage, object)`, V10-P1 planned).
+  Part 11 (`backstop = f(trigger, lag, coverage, object)`) → Part 12
+  (`policy_backstop.py`, V10-P1, calibrated on March 2020).
 
 ## Layout
 
@@ -49,4 +51,4 @@ articles/
 src/                    # the modules behind the articles
 ```
 
-Last synced: 2026-09-17 (parts 1–11).
+Last synced: 2026-09-18 (parts 1–12).
