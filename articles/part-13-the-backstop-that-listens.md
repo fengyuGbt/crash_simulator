@@ -86,4 +86,4 @@ Next iteration already has a candidate: **what happens when the market learns th
 
 *Currently available for freelance work — AI data automation, Python pipelines, and quantitative risk tools. Reach me at gopipibank@gmail.com.*
 
-*本文由 AI 辅助撰写，经作者审阅。*
+*This article was written with AI assistance and reviewed by the author.*
