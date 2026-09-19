@@ -82,7 +82,7 @@ Next iteration already has a candidate: **what happens when the market learns th
 
 ---
 
-*Code: `crash_simulator_v10/policy_expectations.py` (V10-P2), self-test and Monte Carlo included. Deterministic, ~600 lines, no dependencies beyond the standard library.*
+*Code: `crash_simulator_v10/policy_expectations.py` (V10-P2), self-test and Monte Carlo included. Deterministic, 394 lines, no dependencies beyond the standard library.*
 
 *Currently available for freelance work — AI data automation, Python pipelines, and quantitative risk tools. Reach me at gopipibank@gmail.com.*
 
