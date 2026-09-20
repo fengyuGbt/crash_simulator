@@ -3,8 +3,8 @@
 Building a market stress-testing tool in public, one mechanism at a time.
 Each part ships with a real module in `src/` (V9 line: `market_state.py` →
 `dealer_gamma.py` → `gamma_flip.py` → `cascade.py` → `mc_mechanism.py`;
-V10 line: `policy_backstop.py` (P1) → `policy_expectations.py` (P2)),
-a GitHub commit, and this article.
+V10 line: `policy_backstop.py` (P1) → `policy_expectations.py` (P2) →
+`policy_anticipation.py` (P3)), a GitHub commit, and this article.
 
 English versions live here (also on [dev.to](https://dev.to/fengyugbt));
 Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
@@ -30,6 +30,7 @@ Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
 | 11 | [The Twenty-Day Window](part-11-the-twenty-day-window.md) | Price tools vs flow tools; pricing the policy residual | V10-P1 policy layer (planned) |
 | 12 | [The Backstop Clock](part-12-the-backstop-clock.md) | Policy clock vs cascade: price tools don't bind, flow tools truncate | `policy_backstop.py` (V10-P1) |
 | 13 | [The Backstop That Listens](part-13-the-backstop-that-listens.md) | Regime trigger + expectations channel: the announcement cuts the intention | `policy_expectations.py` (V10-P2) |
+| 14 | [When the Market Learns the Rule](part-14-when-the-market-learns-the-rule.md) | Front-running the backstop; constructive ambiguity as a policy knob | `policy_anticipation.py` (V10-P3) |
 
 ## Reader feedback drove the roadmap
 
@@ -47,6 +48,11 @@ Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
   endogenous regime trigger (2 buckets + 20% drawdown, fires at step 14/40
   ≈ Mar 23) and the expectations channel (E cuts unfinished sell intentions,
   incl. flow in transit; too-late trigger = absorber, gap → 0 at 30%).
+- Part 13's teaser → Part 14 (`policy_anticipation.py`, V10-P3): a
+  transparent rule is front-run (tail -22.8% → -24.7%, expectations channel
+  drained); constructive ambiguity is a knob with an optimum — 2% trigger
+  noise buys back 1.2pts of mean and 2.3pts of worst case; too much noise
+  and the tail explodes (-34.8% p1 at 12%).
 
 ## Layout
 
@@ -57,4 +63,4 @@ articles/
 src/                    # the modules behind the articles
 ```
 
-Last synced: 2026-09-18 (parts 1–13).
+Last synced: 2026-09-20 (parts 1–14).
