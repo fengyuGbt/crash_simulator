@@ -4,7 +4,8 @@ Building a market stress-testing tool in public, one mechanism at a time.
 Each part ships with a real module in `src/` (V9 line: `market_state.py` →
 `dealer_gamma.py` → `gamma_flip.py` → `cascade.py` → `mc_mechanism.py`;
 V10 line: `policy_backstop.py` (P1) → `policy_expectations.py` (P2) →
-`policy_anticipation.py` (P3)), a GitHub commit, and this article.
+`policy_anticipation.py` (P3) → `policy_moral_hazard.py` (P4)), a GitHub
+commit, and this article.
 
 English versions live here (also on [dev.to](https://dev.to/fengyugbt));
 Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
@@ -31,6 +32,7 @@ Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
 | 12 | [The Backstop Clock](part-12-the-backstop-clock.md) | Policy clock vs cascade: price tools don't bind, flow tools truncate | `policy_backstop.py` (V10-P1) |
 | 13 | [The Backstop That Listens](part-13-the-backstop-that-listens.md) | Regime trigger + expectations channel: the announcement cuts the intention | `policy_expectations.py` (V10-P2) |
 | 14 | [When the Market Learns the Rule](part-14-when-the-market-learns-the-rule.md) | Front-running the backstop; constructive ambiguity as a policy knob | `policy_anticipation.py` (V10-P3) |
+| 15 | [The Leverage Subsidy](part-15-the-leverage-subsidy.md) | The backstop builds the tail it truncates: leverage is policy-endogenous | `policy_moral_hazard.py` (V10-P4) |
 
 ## Reader feedback drove the roadmap
 
@@ -53,6 +55,14 @@ Chinese versions in [`zh/`](zh/), also on Zhihu (肥尾笔记).
   drained); constructive ambiguity is a knob with an optimum — 2% trigger
   noise buys back 1.2pts of mean and 2.3pts of worst case; too much noise
   and the tail explodes (-34.8% p1 at 12%).
+- Part 14's teaser → Part 15 (`policy_moral_hazard.py`, V10-P4): the market
+  doesn't need to learn the rule, only that a backstop exists — leverage
+  becomes policy-endogenous (λ scales books up and margins down); the
+  backstop's own leverage deepens the tail it truncates (-22.8% → -27.6% at
+  λ=1.5 → -29.1% at λ=2.0); holding leverage fixed is optimistic by
+  construction — the p1 rescue shrinks from -24.8% (exogenous) to -29.4%
+  (λ~1.35) to -31.1% (λ~1.75), i.e. 24–33% of the rescue eaten. Moral hazard
+  bites the tail, not the mean.
 
 ## Layout
 
@@ -63,4 +73,4 @@ articles/
 src/                    # the modules behind the articles
 ```
 
-Last synced: 2026-09-20 (parts 1–14).
+Last synced: 2026-09-21 (parts 1–15).
