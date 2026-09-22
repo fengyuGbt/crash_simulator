@@ -63,8 +63,8 @@ explicit:
 
 | scenario | mean | p10 | p1 | worst |
 |---|---|---|---|---|
-| no backstop, λ=1.0 (exogenous) | -42.3% | -41.0% | **-43.9%** | -49.0% |
-| backstop, λ=1.0 (exogenous) | -24.6% | -23.2% | **-24.8%** | -31.1% |
+| no backstop, λ=1.0 (exogenous) | -34.1% | -41.0% | **-43.9%** | -49.0% |
+| backstop, λ=1.0 (exogenous) | -21.3% | -23.2% | **-24.8%** | -31.1% |
 | backstop, λ ~ N(1.35, 0.25) | -24.5% | -27.5% | **-29.4%** | -31.3% |
 | backstop, λ ~ N(1.5, 0.30) | -25.5% | -28.4% | **-30.4%** | -31.7% |
 | backstop, λ ~ N(1.75, 0.35) | -26.9% | -29.5% | **-31.1%** | -33.2% |
@@ -73,8 +73,11 @@ The p1 column tells the whole story. On the exogenous assumption the
 backstop's p1 is -24.8% — a 19-point rescue from the -43.9% no-backstop
 world. Once leverage is allowed to respond, the rescue shrinks: **-29.4%
 at λ ~ 1.35 (24% of the rescue eaten), -31.1% at λ ~ 1.75 (33% eaten).**
-The mean barely moves (-24.6% → -24.5% → -26.9%) because the backstop
-compresses averages hard; **moral hazard bites the tail, not the mean.**
+The mean moves too (-21.3% → -24.5% → -25.5% → -26.9%), but the rescue's
+value lives in the tail: the mean rescue is 12.8 points, the p1 rescue is 19.1
+points. Moral hazard eats 33% of the tail rescue and 44% of the mean rescue —
+**the tail is where the policy's promise, and its erosion, are both most
+visible.**
 
 ## 3. The p10 column: where the systematic optimism lives
 
