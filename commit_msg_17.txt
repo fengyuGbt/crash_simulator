@@ -1,0 +1,10 @@
+feat(part-17): crisis cost nonlinearity — V10-P5 convex & threshold cost module
+
+- new deterministic module src/crisis_cost_nonlinearity.py (204 lines, stdlib only)
+- English article articles/part-17-the-expensive-sixth-point.md
+- Chinese article articles/zh/part-17-the-expensive-sixth-point.md
+- anchors: Cerra-Saxena persistence, Ori-Peri 26%/20y, Boyd et al. 63-302%,
+  Laeven-Valencia DB II, Kapp-Vega LDA, Funke-Schularick-Trebesch +30% far-right,
+  Mian-Sufi-Trebbi polarization
+- key finding: endogenous leverage moves p1 across the 30% threshold
+  (-24.8% -> -31.1%), cascade-zone share 0.1% -> 5.7% (57x)
