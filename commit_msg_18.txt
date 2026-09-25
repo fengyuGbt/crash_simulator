@@ -1,0 +1,14 @@
+feat(part-18): policy space depletion — V10-P6 backstop's clock module
+
+- new deterministic module src/policy_space.py (212 lines, stdlib only)
+- English article articles/part-18-the-backstops-clock-policy-space.md
+- Chinese article articles/zh/part-18-the-backstops-clock-policy-space.md
+- anchors: Eggertsson-Woodford ZLB (2003), Woodford (2012),
+  Tenreyro-Thwaites pushing-on-a-string (2016), Romer-Romer fiscal space
+  (BPEA 2019), Kose et al. fiscal space database, Salamaliki-Venetis (2023)
+- structure: leverage deterministic (promise), protection probabilistic (capacity)
+- key findings:
+  (a) tail reads the clock first: C 1.0->0.75 costs 6.1 pts mean but
+      26.5 pts at p1; >30% share 0.4% -> 27.2%
+  (b) believed-but-depleted worse than never-believed (credibility cliff):
+      C=0.25 p1 -63.7% vs C=0 p1 -44.1%; mean -47.1% vs -33.9%
