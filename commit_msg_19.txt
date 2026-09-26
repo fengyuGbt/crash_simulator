@@ -1,0 +1,17 @@
+feat(part-19): retail underwear — V10-P7 cash buffer vs put insurance
+
+- new deterministic module src/retail_underwear.py (256 lines, stdlib only)
+- English article articles/part-19-the-retail-underwear-cash-vs-options.md
+- Chinese article articles/zh/part-19-the-retail-underwear-cash-vs-options.md
+- anchors: protective-put cost survey (1-3%/yr, 10-20% OTM rolled),
+  crisis repricing 2-5x (Mar 2020 VIX 14->82, protection 1% -> 5-10%),
+  cash opportunity cost 0.8-1.2%/yr; Tenreyro-Thwaites retail twin
+- structure: cash = scaling (deterministic, capacity 1.0), put =
+  truncation (p1 pinned at -(D+pi)); both cost 2%/yr
+- key findings:
+  (a) put dominates cash in the tail and the gap widens as capacity
+      drains: C=0.25 put saves 41.7 pts vs cash 12.7 pts on p1
+  (b) the options garment's clock is the renewal: locked 2% premium
+      improves mean at every C; crisis renewal at 6% drags mean below
+      bare in the calm world (-25.5% vs -24.6%) — retail pushing-on-a-
+      string: insurance most expensive when most needed
