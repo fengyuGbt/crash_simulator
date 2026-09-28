@@ -19,6 +19,8 @@ And the experience literature explains who wears the garment: Malmendier & Nagel
 
 ## 2. The model: three failure channels, one behavioral clock
 
+For readers new to options, a plain-language note on what the "put garment" is. A put is a contract: you keep your stocks and buy the right to sell them at a fixed price — say 20% below today's level. If the market falls through that strike, you sell at the agreed price and your loss is capped at the deductible; the deeper the drop, the less it can hurt you. It is insurance: you pay a premium (Part 19 priced it at 2%/yr) and the option seller absorbs the tail. In this series the put garment means deductible 20%, premium 2%/yr, losses truncated at -22% — the "hard cap" in the tables. The behavioral layer below shows what happens when that insurance is sold in a panic (the cap softens to -28%) or simply not renewed (the garment vanishes and the path reverts to bare) — which is why the right product is not a better put: the contract already works. The binding constraint is the wearer, someone who must decide, mid-crisis, to keep paying and to keep holding.
+
 We reuse the market-loss machinery of Parts 15-19 (P4's `run_policy_moral_hazard`, P6's capacity levels, P7's garments). On top of the mechanical garments we add three behavioral failure channels, each triggered by the crisis itself (seed 20260921, 2,000 paths per level):
 
 - **Panic sell** — when a path passes -25%, the investor sells and locks a realized loss at -28% (three points of panic slippage), with probability 40%. The option garment's hard cap softens from -22% to -28%, and the garment is gone for that path.

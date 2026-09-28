@@ -1,0 +1,8 @@
+docs(part-20): add plain-language put primer to model section
+
+- explain what a put is before the numbers (contract, fixed strike,
+  deductible + premium = insurance; series params deductible 20%,
+  premium 2%/yr, truncation at -22%)
+- connect to behavioral layer (panic softens cap to -28%, lapse reverts
+  to bare) and the Part 21 hook (binding constraint is the wearer, not
+  the contract)
