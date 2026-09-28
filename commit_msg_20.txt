@@ -1,0 +1,23 @@
+feat(part-20): behavioral gap — V10-P8 panic, lapse, and raided buffers
+
+- new deterministic module src/behavioral_underwear.py (stdlib only)
+- English article articles/part-20-the-behavioral-gap.md
+- Chinese article articles/zh/part-20-the-behavioral-gap.md
+- anchors: Mar 2020 retail panic evidence (S&P -34%/33 days; Vanguard
+  17% traded, <0.5% panic-liquidated; India SEBI withdrawal before
+  rebound); Kahneman-Tversky loss aversion; Shefrin-Statman disposition
+  effect; Malmendier-Nagel Depression Babies (QJE 2011) + experience
+  effects (NBER w29074)
+- structure: garments from P7 + three behavioral failure channels:
+  panic sell (deep paths, trigger -25%, lock -28%), lapse (40%, revert
+  to bare), cash raid (25%, revert to bare); experienced = halved rates
+- key findings:
+  (a) behavioral gap eats 73-96% of nominal protection: at C=0.25 the
+      put's nominal 41.7 pts becomes 1.8 pts actual
+  (b) the garment fails by disappearing, not worsening: lapse/raid
+      revert paths to bare; panic share rises monotonically with
+      capacity drain (20.5% -> 38.2%)
+  (c) behavioral clock runs with the policy clock: protection most
+      likely to fall off exactly where most needed
+  (d) experience is a medium-crisis effect: halved failure rates buy
+      0.5-3.4 pts of tail, near-useless at the extreme (C=0.25)
