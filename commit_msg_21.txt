@@ -1,0 +1,25 @@
+feat(part-21): commitment is all-or-nothing (V10-P9 commitment_device)
+
+Part 21 prices the "better default" for retail: a rescue-layer commitment
+model on top of Part 20's behavioral layer. c in [0,1] rescues each
+behavioral failure back to the mechanical outcome with probability c;
+c=0 reproduces Part 20's published numbers exactly, c=1 reproduces
+Part 19's mechanical garment.
+
+Three findings:
+1. Commitment is all-or-nothing: in the depleted world (C=0.25) the
+   first 0.75 of commitment buys 3.3 pts of p1 (to -58.6%), the last
+   0.25 buys 36.6 pts (to -22.0%). Extreme-order pinning: as long as
+   any behavioral failure survives, the worst 1% stays deep.
+2. Cost is not the constraint: c*=1.00 in every world at both 0.5%/yr
+   and 2%/yr, because the last quarter alone delivers 6-37 pts vs at
+   most 0.5 pts of extra cost.
+3. Value scales with capacity drain: net improvement 5.4 pts in the
+   calm world vs 39.7 pts in the depleted world (7.3x).
+
+Anchor: Thaler & Benartzi SMarT (78% join, 3.5%->11.6% in 28 months),
+Madrian & Shea 401k auto-enrollment (~40%->86%), Choi et al. default
+stickiness.
+
+Module: src/commitment_device.py, 281 lines, deterministic, stdlib only,
+self-test 7 invariants.
