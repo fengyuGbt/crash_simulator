@@ -1,0 +1,28 @@
+feat(part-22): one override is all it takes — the self-exemption loophole (V10-P10)
+
+Part 22 attacks Part 21's full commitment from the wearer side: the
+exemption rate e in [0,1] — the probability that at the moment of
+crisis the investor overrides the standing automatic rule despite full
+commitment. e=0 reproduces Part 19's mechanical garment, e=1 reproduces
+Part 20's naive investor.
+
+Three findings:
+1. Nonlinear damage: in the depleted world (C=0.25), a 10% exemption
+   rate jumps the worst 1% from -22.0% to -56.2% — 85.5% of the
+   garment's protection destroyed by one-tenth of a loophole. Extreme-
+   order logic: as long as any override can fire, the deepest paths are
+   exposed.
+2. Violent asymmetry: commitment 0->0.75 bought 3.3 pts (Part 21);
+   exemption 0->0.10 destroys 34.2 pts. Win needs 100% commitment,
+   lose needs a single override (reliability cliff).
+3. The loophole widens with capacity drain: destruction share 22.1%
+   (C=0.75) -> 85.5% (C=0.25); absolute damage 6.7 -> 34.2 pts.
+
+Anchors: Reinhart & Rogoff "This Time Is Different" (66 countries, 800
+years; Templeton's four most expensive words); O'Donoghue & Rabin
+present bias (AER 1999); Ashraf, Karlan & Yin SEED commitment savings
+(QJE 2006): balances +81% (openers +337%) — the product worked because
+exemption had friction.
+
+Module: src/self_exemption.py, 250 lines, deterministic, stdlib only,
+self-test 6 invariants incl. the 10%-destroys-85% finding.
